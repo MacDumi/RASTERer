@@ -10,22 +10,16 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import ui_main
-header = """
-        (               (  .        ( (   )    )    (
-)\  )\  )\   )\ )\      )\  (       )\)\ (()  (_\  (()
-((_)(_)(_)__(_)(_)    ((_)  )\     (_)(_))(_) (__)((_)
-|_   _| \/ /_   _|    | |_ ((_)    | || |   \| __|| __|
-  | |  >  <  | |      |  _| _ \    | __ | |) | _| |__ \\
-  |_| /_/\_\ |_|       \__|___/    |_||_|___/|_|  |___/
-"""
+import layouts.convert_main as ui_main
+
 class WorkerThread(QThread):
     error = pyqtSignal(str, name='error')
     finished = pyqtSignal()
     canceled = pyqtSignal()
     progress = pyqtSignal(int, name='progress')
 
-    def __init__(self, data_file, coords, save_file, comments, compression=4, chunksize=500):
+    def __init__(self, data_file, coords, save_file,
+                comments, compression=4, chunksize=500):
         QThread.__init__(self)
         self.data_file = data_file
         self.save_file = save_file
@@ -120,7 +114,7 @@ class Main(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self, data, coords, save):
         super(Main, self).__init__()
         self.setupUi(self)
-        self.setFixedSize(600, 650)
+        self.setFixedSize(600, 640)
         self.readConfig()
         self.reset()
 
