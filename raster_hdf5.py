@@ -4,10 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import h5py
 import peakutils
 import os, sys
 import argparse as ap
-alt_greeting = """
+greeting = """
 #################################################################################
 #################################################################################
 #################################################################################
@@ -21,47 +22,153 @@ alt_greeting = """
 #################################################################################
 #################################################################################
 """
-greeting = """
-                          ,,
-           __           o-°°|\_____/)
-      (___()'`; RASTERer \_/|_)     )
-      /,    /`              \  __  /
-      \\\\"--\\\\               (_/ (_/
-"""
+class RasterData:
+    def __init__(self, file_name, mode):
+        if not os.path.isfile(file_name):
+            raise FileNotFoundError
+        self.file_name = file_name
+        self.mode = mode
+        self.file = None
+        self.tof_data = None
+        self._mass = None
+        self._time = None
+        self._average = None
+        self._x = None
+        self._y = None
 
-def readData(path):
-    """
-    Read the data file:
-        a TAB separated file with a 15 line header
-        the first two columns are time and mass
-    """
-    if os.path.isfile(path):
-        print("[i] Reading the data ...")
+    def __enter__(self):
+        #Create a class from a file
+        self.file = h5py.File(self.file_name, self.mode)
         try:
-            name = os.path.splitext(path)
-            if name[1] != '.ftr' and not os.path.isfile(f'{name[0]}.ftr'):
-                print('    [i] Text data detected...')
-                data = pd.read_csv(path, sep='\t', skiprows=15, header=None)
-                #remove the last empty column
-                data = data[data.columns[:-1]]
-                #rename the columns
-                columns = ['time', 'mass'] + [str(i) for i in range(len(
-                                            data.columns)-2)]
-                data.columns = columns
-                print('    [i] Saving to feather...')
-                data.to_feather(f'{name[0]}.ftr')
-                print(f'    [i] Use the {name[0]}.ftr file next time')
-            else:
-                print('    [i] A feather file detected...')
-                data = pd.read_feather(f'{name[0]}.ftr')
-                print('    [i] Data loaded in the memory')
+            self.tof_data = self.file['tof_data']['spectra']
+            self._average  = self.file['tof_data']['average']
+            self.mass     = self.file['tof_data']['mass']
+            self.time     = self.file['tof_data']['time']
+            self.x        = self.file['coordinates']['x']
+            self.y        = self.file['coordinates']['y']
+            if len(self.x) != self.tof_data.shape[1]:
+                raise ValueError('Shape Mismatch')
+            return self
         except Exception as e:
-            print("[e] Could not read the file:\n", e)
+            self.file.close()
+            raise KeyError(e)
+
+    def get_peaks(self, peaks, mass=True, intensity=True,
+                       summed=True, mass_width=0.05, time_width=10):
+        #Returns the intensity/area of one or several peaks
+        if type(peaks) not in [tuple, list, set]:
+            peaks = [peaks]
+        out = {}
+        x_axis = self.mass[:] if mass else self.time[:]
+        width  = mass_width if mass else time_width
+        for peak in peaks:
+            start_idx = np.where(x_axis >= peak - width/2)[0][0]
+            end_idx   = np.where(x_axis >= peak + width/2)[0][0]
+            data = self.tof_data[start_idx:end_idx, :]
+            if intensity:
+                out[peak] = data.max(axis=0)
+            else:
+                out[peak] = data.sum(axis=0)
+        if summed:
+            return np.array([out[peak] for peak in peaks]).sum(axis=0)
+        else:
+            return out
+
+    def get_region(self, regions, mass=True):
+        #Returns the area of one or several regions
+        if type(regions) not in [list, dict, set, tuple]:
             return
-        return data
-    else:
-        print(f"[e] File {path} does not exist")
-        return
+        if type(regions[0]) not in [list, dict, set, tuple]:
+            regions = [regions]
+        out = []
+        x_axis = self.mass[:] if mass else self.time[:]
+        for start, end in regions:
+            start_idx = np.where(x_axis >= start)[0][0]
+            end_idx   = np.where(x_axis >= end)[0][0]
+            out.append(self.tof_data[start_idx:end_idx, :].sum(axis=0))
+        return np.array(out).sum(axis=0)
+
+    def save_image(self, image, label):
+        if 'Images' not in self.file.keys():
+            self.file.create_group('Images')
+        images = self.file['Images']
+        if label not in images.keys():
+            images.create_dataset(label, shape=(1,1), maxshape=(None, None),
+                    shuffle=True, compression=9)
+        image_ds = images[label]
+        image_ds.resize((image.shape[0], image.shape[1]))
+        image_ds[:,:] = image
+        self.file.flush()
+
+    def generate_image(self, data):
+        """
+        Construct an image with the correct shape and normalize it
+        """
+        #Create a dataframe
+        df = pd.DataFrame(np.column_stack((self.x, self.y, data)),
+                                                          columns=['x','y','z'])
+        #Create a pivot table with x in rows and y in columns
+        image = df.pivot_table(values='z', index='x', columns='y')
+        #Normalize the image
+        # image = image - image.min().min()
+        image = image / image.max().max() * 255
+        return image.transpose().values[:,::-1]
+
+    @property
+    def average(self):
+        #Returns the average mass spectrum (time, mass, intensity)
+        return np.column_stack((self.time[:], self.mass[:], self._average[:]))
+
+    @average.setter
+    def average(self, average):
+        self._average = average
+        self.file.flush()
+
+    @property
+    def mass(self):
+        #Returns the mass column
+        return self._mass[:]
+
+    @mass.setter
+    def mass(self, mass):
+        self._mass = mass
+        self.file.flush()
+
+    @property
+    def time(self):
+        #Returns the time column
+        return self._time[:]
+
+    @time.setter
+    def time(self, time):
+        self._time = time
+        self.file.flush()
+
+    @property
+    def x(self):
+        #Returns the x coordinate
+        return self._x[:]
+
+    @x.setter
+    def x(self, x):
+        self._x = x
+        self.file.flush()
+
+    @property
+    def y(self):
+        #Returns the y coordinate
+        return self._y[:]
+
+    @y.setter
+    def y(self, y):
+        self._y = y
+        self.file.flush()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        #Properly close the hdf5 file
+        self.file.close()
+
+
 
 def plotSpectrum(data, mass=True, **kwargs):
     """
@@ -87,25 +194,6 @@ def plotSpectrum(data, mass=True, **kwargs):
     plt.show()
     return pd.concat([data['time'], data['mass'], mean], axis=1)
 
-def readCoords(path):
-    """
-    Read the coordinates:
-        a text file with z, x and y coordinates
-    """
-    if os.path.isfile(path):
-        try:
-            print("[i] Reading the coordinates ...")
-            coords = pd.read_csv(path, sep=' ',
-                        index_col=0, header=None,
-                        names=['z', 'x', 'y'])
-        except Exception as e:
-            print("[e] Could not read the file:\n", e)
-            return
-        #rename the columns
-        return coords
-    else:
-        print(f"[e] File {path} does not exist")
-        return
 
 def findPeak(x, y, pos, width=25, peak_width=10):
     """
@@ -191,27 +279,6 @@ def getRegion(data, start, end, mass=True, **kwargs):
             out.append(findRegion(data['time'], data[c], start, end, **kwargs))
     return out
 
-def generateImage(coordinates, signal, area=False):
-    """
-    Construct an image with the correct shape and normalize it
-    """
-    if len(coordinates) != len(signal):
-        print("[e] Shape mismatch between data and coordinates ... Quiting")
-        return None
-    if not area:
-        data = [(round(x,2),round(y,2),z['intensity']) for x, y, z
-                    in zip(coordinates['x'], coordinates['y'], signal)]
-    else:
-        data = [(round(x,2),round(y,2),z['area']) for x, y, z
-                    in zip(coordinates['x'], coordinates['y'], signal)]
-    #Create a dataframe
-    df = pd.DataFrame(data, columns=['x','y','z'])
-    #Create a pivot table with x in rows and y in columns
-    image = df.pivot_table(values='z', index='x', columns='y')
-    #Normalize the image
-    image = image - image.min().min()
-    image = image / image.max().max() * 255
-    return image
 
 
 
@@ -220,7 +287,7 @@ if __name__ == '__main__':
     Will run when executed
         python raster.py <dataFile> -c <coordinates> --peaks <peak1> <peak2>...
     """
-    print(alt_greeting)
+    print(greeting)
     parser = ap.ArgumentParser(
                 description='Script for plotting chemical images',
                 usage='%(prog)s [options] data -c coordinates')
