@@ -92,13 +92,13 @@ class WorkerThread(QThread):
             f.flush()
             if not self.cancel:
                 self.finished.emit()
-        except OSError:
-            self.canceled.emit()
         except Exception as e:
             self.error.emit(str(e))
         finally:
             if f is not None:
                 f.close()
+            if self.cancel:
+                self.canceled.emit()
 
     def get_file_info(self, header=20, sep='\t'):
         #Get the number of columns
@@ -138,6 +138,7 @@ class Main(QMainWindow, ui_main.Ui_MainWindow):
         self.data_btn.clicked.connect(self.browse_data)
         self.coords_btn.clicked.connect(self.browse_coords)
         self.out_btn.clicked.connect(self.browse_out)
+        self.convert_btn.clicked.connect(self.convert)
 
     def reset(self):
         self.coords_file, self.data_file, self.save_file = None, None, None
@@ -145,7 +146,6 @@ class Main(QMainWindow, ui_main.Ui_MainWindow):
         self.coords_lbl.setText('Coordinates file')
         self.out_lbl.setText('Output file')
         self.progressBar.setEnabled(False)
-        self.convert_btn.clicked.connect(self.convert)
         self.convert_btn.setEnabled(False)
         self.convert_btn.setText('Convert')
         self.data_btn.setEnabled(True)
@@ -185,24 +185,26 @@ class Main(QMainWindow, ui_main.Ui_MainWindow):
             self.save_file = fname
 
     def convert(self):
-        comments = self.comment_txt.toPlainText().split('\n')
-        self.progressBar.setEnabled(True)
-        self.convert_btn.setText('Cancel')
-        self.out_btn.setEnabled(False)
-        self.coords_btn.setEnabled(False)
-        self.comment_txt.setEnabled(False)
-        self.compression_slider.setEnabled(False)
+        if self.worker is not None:
+            self.worker.abort()
+        else:
+            comments = self.comment_txt.toPlainText().split('\n')
+            self.progressBar.setEnabled(True)
+            self.convert_btn.setText('Cancel')
+            self.out_btn.setEnabled(False)
+            self.coords_btn.setEnabled(False)
+            self.comment_txt.setEnabled(False)
+            self.compression_slider.setEnabled(False)
 
-        self.worker = WorkerThread(self.data_file, self.coords_file, self.save_file, comments,
-                                                    compression=self.compression_slider.value())
+            self.worker = WorkerThread(self.data_file, self.coords_file, self.save_file, comments,
+                                                        compression=self.compression_slider.value())
 
-        self.worker.progress.connect(self.progressBar.setValue)
-        self.worker.finished.connect(self.finished)
-        self.worker.error.connect(self.error)
-        self.worker.canceled.connect(self.canceled)
-        self.convert_btn.clicked.connect(self.worker.abort)
-        self.data_btn.setEnabled(False)
-        self.worker.start()
+            self.worker.progress.connect(self.progressBar.setValue)
+            self.worker.finished.connect(self.finished)
+            self.worker.error.connect(self.error)
+            self.worker.canceled.connect(self.canceled)
+            self.data_btn.setEnabled(False)
+            self.worker.start()
 
     def canceled(self):
         msg = QMessageBox()
