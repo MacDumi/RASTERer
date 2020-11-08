@@ -19,6 +19,10 @@
   <property name="windowTitle">
    <string>Convert to hdf5</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../media/convert.png</normaloff>../media/convert.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_4">
     <item row="4" column="0">
