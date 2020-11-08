@@ -52,7 +52,7 @@ The obtained picture will appear in a separate window.
 </p>
 
 In the __image__ window you are able to apply several transformations (α, β, γ, rotation, and mirroring) to the obtained figure and change the color map.
-The image can be then saved to HDF5 or to a text or image file.
+The image can be then saved to HDF5, text or image file.
 
 
 
