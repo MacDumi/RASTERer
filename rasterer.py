@@ -62,6 +62,7 @@ class Rasterer(QMainWindow, Ui_MainWindow):
         self.zp = ZoomPan()
         figZoom = self.zp.zoom_factory(self.subplot, base_scale = 1.5)
         figPan = self.zp.pan_factory(self.subplot)
+        self.figure.canvas.mpl_connect('button_press_event', self.onclick)
 
         self.toolbar = NavigationToolbar(self.canvas, self)
         #Delete all the actions
@@ -111,6 +112,10 @@ class Rasterer(QMainWindow, Ui_MainWindow):
         self.tableWidget.setItem(rowPosition, 0, QTableWidgetItem(f'{min_value:.2f}'))
         self.tableWidget.setItem(rowPosition, 1, QTableWidgetItem(f'{max_value:.2f}'))
         self.plot_btn.setEnabled(True)
+
+    def onclick(self, event):
+        if event.dblclick:
+            self.plot()
 
     def table_item_right_clicked(self, QPos):
         self.listMenu= QtWidgets.QMenu()
@@ -209,12 +214,12 @@ class Rasterer(QMainWindow, Ui_MainWindow):
     def plot(self):
         #Plot the average spectrum
         self.subplot.clear()
-        min_idx = np.where(self.spectrum[:,0]>10)[0][0]
+        min_idx = np.where(self.spectrum[:,1]>20)[0][0]
         self.spectrum_plot = self.subplot.plot(self.spectrum[min_idx:,1],
                                                 self.spectrum[min_idx:,2])
         self.subplot.set_title('Average spectrum', fontweight='bold')
         self.subplot.set_xlim(20, 1000)
-        self.subplot.set_ylim(-1, 1.1*self.spectrum[min_idx:,1].max())
+        self.subplot.set_ylim(-1, 1.1*self.spectrum[min_idx:,2].max())
         self.subplot.set_xlabel('m/z', fontweight='bold')
         self.canvas.draw()
 

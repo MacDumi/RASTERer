@@ -5,7 +5,6 @@ import numpy as np
 import h5py
 import time
 import argparse as ap
-from tqdm import tqdm
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -114,7 +113,7 @@ class Main(QMainWindow, ui_main.Ui_MainWindow):
     def __init__(self, data, coords, save):
         super(Main, self).__init__()
         self.setupUi(self)
-        self.setFixedSize(600, 640)
+        self.setFixedSize(550, 620)
         self.readConfig()
         self.reset()
 
