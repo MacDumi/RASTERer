@@ -42,10 +42,14 @@ class Image(QWidget):
         save_hdf = QAction(QIcon("media/save_to.png"),"Save to HDF5", self)
         save     = QAction(QIcon("media/save.png"),"Save Image", self)
         reset    = QAction(QIcon("media/reset.png"),"Reset Image", self)
-        rotate_right  = QAction(QIcon("media/rotate_right.png"), "Rotate right", self)
-        rotate_left   = QAction(QIcon("media/rotate_left.png"), "Rotate left", self)
-        flip_hor  = QAction(QIcon("media/flip_hor.png"), "Flip horizontal", self)
-        flip_ver  = QAction(QIcon("media/flip_ver.png"), "Flip vertical", self)
+        rotate_right  = QAction(QIcon("media/rotate_right.png"),
+                                                    "Rotate 90° clockwise", self)
+        rotate_left   = QAction(QIcon("media/rotate_left.png"),
+                                            "Rotate 90° counter-clockwise", self)
+        flip_hor  = QAction(QIcon("media/flip_hor.png"),
+                                                       "Flip horizontally", self)
+        flip_ver  = QAction(QIcon("media/flip_ver.png"),
+                                                       "Flip vertically", self)
         c_0 = QAction(QIcon("media/gray.png"), 'Gray', self)
         c_1 = QAction(QIcon("media/binary.png"), 'Binary', self)
         c_2 = QAction(QIcon("media/copper.png"), 'Copper', self)
@@ -73,7 +77,9 @@ class Image(QWidget):
         cmap.setMenu(menu)
 
         self.toolbar = QToolBar("tools")
-        self.toolbar.addAction(save_hdf)
+        if not disable_save:
+            self.toolbar.addAction(save_hdf)
+            save_hdf.triggered.connect(self.save_to_hdf)
         self.toolbar.addAction(save)
         self.toolbar.addAction(reset)
         self.toolbar.addSeparator()
@@ -93,15 +99,12 @@ class Image(QWidget):
         c_6.triggered.connect(lambda: self.plot_image(cmap='Spectral'))
         c_7.triggered.connect(lambda: self.plot_image(cmap='seismic'))
         c_8.triggered.connect(lambda: self.plot_image(cmap='coolwarm'))
-        save_hdf.triggered.connect(self.save_to_hdf)
         save.triggered.connect(self.save_txt)
         reset.triggered.connect(self.image_reset)
-        rotate_right.triggered.connect(lambda: self.transform_image(rotate='right'))
         rotate_left.triggered.connect(lambda: self.transform_image(rotate='left'))
+        rotate_right.triggered.connect(lambda: self.transform_image(rotate='right'))
         flip_hor.triggered.connect(lambda: self.transform_image(flip='hor'))
         flip_ver.triggered.connect(lambda: self.transform_image(flip='ver'))
-        if disable_save:
-            save_hdf.setEnabled(False)
 
         self.figure = plt.figure()
         self.figure.set_tight_layout(True)
@@ -143,9 +146,9 @@ class Image(QWidget):
         self.layout.addWidget(self.brightness_slider, 3, 1, 1, 5)
         self.layout.addWidget(self.contrast_slider, 4, 1, 1, 5)
         self.layout.addWidget(self.gamma_slider, 5, 1, 1, 5)
-        self.contrast_slider.sliderReleased.connect(self.plot_image)
-        self.brightness_slider.sliderReleased.connect(self.plot_image)
-        self.gamma_slider.sliderReleased.connect(self.plot_image)
+        self.contrast_slider.valueChanged.connect(self.plot_image)
+        self.brightness_slider.valueChanged.connect(self.plot_image)
+        self.gamma_slider.valueChanged.connect(self.plot_image)
         self.setWindowTitle(title)
 
         self.setLayout(self.layout)
