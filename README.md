@@ -14,7 +14,7 @@ Make sure that all the required libraries are installed by running:
 Before using the tool, mass spectrometric data has to be converted to an HDF5 file with the following internal structure. 
 
 <p align="center">
-    <img src="/screenshots/file_structure.png">"
+    <img src="/screenshots/file_structure.png">
 </p>
 
 The __Images__ dataset is not mandatory but will be created automatically when a new image is added.
