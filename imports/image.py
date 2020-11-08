@@ -15,7 +15,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from layouts.ui_label import Ui_Dialog
-from raster_hdf5 import RasterData
+from .raster_hdf5 import RasterData
 
 class LabelDiag(QDialog, Ui_Dialog):
     def __init__(self):

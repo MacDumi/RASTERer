@@ -16,9 +16,9 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from raster_hdf5 import RasterData
+from imports.raster_hdf5 import RasterData
 from layouts.ui_main import Ui_MainWindow
-from image import *
+from imports.image import *
 from imports.zoom import *
 
 
