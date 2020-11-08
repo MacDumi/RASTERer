@@ -42,6 +42,10 @@ class Image(QWidget):
         save_hdf = QAction(QIcon("media/save_to.png"),"Save to HDF5", self)
         save     = QAction(QIcon("media/save.png"),"Save Image", self)
         reset    = QAction(QIcon("media/reset.png"),"Reset Image", self)
+        rotate_right  = QAction(QIcon("media/rotate_right.png"), "Rotate right", self)
+        rotate_left   = QAction(QIcon("media/rotate_left.png"), "Rotate left", self)
+        flip_hor  = QAction(QIcon("media/flip_hor.png"), "Flip horizontal", self)
+        flip_ver  = QAction(QIcon("media/flip_ver.png"), "Flip vertical", self)
         c_0 = QAction(QIcon("media/gray.png"), 'Gray', self)
         c_1 = QAction(QIcon("media/binary.png"), 'Binary', self)
         c_2 = QAction(QIcon("media/copper.png"), 'Copper', self)
@@ -72,7 +76,12 @@ class Image(QWidget):
         self.toolbar.addAction(save_hdf)
         self.toolbar.addAction(save)
         self.toolbar.addAction(reset)
+        self.toolbar.addSeparator()
         self.toolbar.addWidget(cmap)
+        self.toolbar.addAction(rotate_right)
+        self.toolbar.addAction(rotate_left)
+        self.toolbar.addAction(flip_hor)
+        self.toolbar.addAction(flip_ver)
         self.layout.addWidget(self.toolbar, 0, 0, 1, 6)
 
         c_0.triggered.connect(lambda: self.plot_image(cmap='gray'))
@@ -87,6 +96,10 @@ class Image(QWidget):
         save_hdf.triggered.connect(self.save_to_hdf)
         save.triggered.connect(self.save_txt)
         reset.triggered.connect(self.image_reset)
+        rotate_right.triggered.connect(lambda: self.transform_image(rotate='right'))
+        rotate_left.triggered.connect(lambda: self.transform_image(rotate='left'))
+        flip_hor.triggered.connect(lambda: self.transform_image(flip='hor'))
+        flip_ver.triggered.connect(lambda: self.transform_image(flip='ver'))
         if disable_save:
             save_hdf.setEnabled(False)
 
@@ -190,4 +203,17 @@ class Image(QWidget):
         self.brightness_slider.setValue(0)
         self.contrast_slider.setValue(0)
         self.gamma_slider.setValue(0)
+        self.plot_image()
+
+    def transform_image(self, rotate=None, flip=None):
+        if rotate == 'right':
+            self.original_image = np.rot90(self.original_image, 3)
+        elif rotate == 'left':
+            self.original_image = np.rot90(self.original_image)
+
+        if flip == 'hor':
+            self.original_image = self.original_image[:,::-1]
+        elif flip == 'ver':
+            self.original_image = self.original_image[::-1, :]
+
         self.plot_image()
