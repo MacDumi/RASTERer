@@ -44,10 +44,8 @@ class Rasterer(QMainWindow, Ui_MainWindow):
         self.listWidget.customContextMenuRequested.connect(
                                                 self.list_item_right_clicked)
         self.listWidget.doubleClicked.connect(self.plot_saved)
-        self.listWidget.setViewMode(QListWidget.IconMode)
         self.listWidget.setIconSize(QSize(100, 100))
-        self.listWidget.setResizeMode(QListWidget.Adjust)
-        self.listWidget.setWordWrap(True)
+        self.model = QStandardItemModel(self.listWidget)
 
         self.plot_btn.clicked.connect(self.plot_image)
         self.plot_btn.setEnabled(False)
@@ -147,26 +145,31 @@ class Rasterer(QMainWindow, Ui_MainWindow):
         self.listMenu.show()
 
     def show_saved(self):
-        self.listWidget.clear()
+        self.model.removeRows(0, self.model.rowCount())
         with RasterData(self.fname, 'r') as f:
             if 'Images' in f.file.keys():
                 images = f.file['Images'].keys()
                 for img in images:
+                    item = QStandardItem(img)
                     im_np = f.file['Images'][img][()].astype(np.uint8)
                     plt.imsave('temp.jpg', im_np, cmap='gray')
-                    self.listWidget.addItem(QListWidgetItem(QIcon('temp.jpg'), img))
+                    pixmap = QPixmap('temp.jpg').scaled(100, 100,
+                                                Qt.KeepAspectRatio)
+                    item.setIcon(QIcon(pixmap))
+                    self.model.appendRow(item)
                 os.remove('temp.jpg')
+        self.listWidget.setModel(self.model)
 
 
     def remove_saved(self):
         #Remove the saved image
-        label = self.listWidget.currentItem().text()
+        label = self.listWidget.selectedIndexes()[0].data()
         with RasterData(self.fname, 'r+') as f:
             del f.file['Images'][label]
         self.show_saved()
 
     def plot_saved(self):
-        label = self.listWidget.currentItem().text()
+        label = self.listWidget.selectedIndexes()[0].data()
         with RasterData(self.fname, 'r') as f:
             img = f.file['Images'][label][()]
         self.show_image(img, disable_save=True, label=label)
