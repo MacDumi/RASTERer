@@ -44,6 +44,11 @@ class Rasterer(QMainWindow, Ui_MainWindow):
         self.listWidget.customContextMenuRequested.connect(
                                                 self.list_item_right_clicked)
         self.listWidget.doubleClicked.connect(self.plot_saved)
+        self.listWidget.setViewMode(QListWidget.IconMode)
+        self.listWidget.setIconSize(QSize(100, 100))
+        self.listWidget.setResizeMode(QListWidget.Adjust)
+        self.listWidget.setWordWrap(True)
+
         self.plot_btn.clicked.connect(self.plot_image)
         self.plot_btn.setEnabled(False)
         self.img = []
@@ -147,7 +152,11 @@ class Rasterer(QMainWindow, Ui_MainWindow):
             if 'Images' in f.file.keys():
                 images = f.file['Images'].keys()
                 for img in images:
-                    self.listWidget.addItem(QListWidgetItem(img))
+                    im_np = f.file['Images'][img][()].astype(np.uint8)
+                    plt.imsave('temp.jpg', im_np, cmap='gray')
+                    self.listWidget.addItem(QListWidgetItem(QIcon('temp.jpg'), img))
+                os.remove('temp.jpg')
+
 
     def remove_saved(self):
         #Remove the saved image
