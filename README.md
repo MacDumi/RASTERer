@@ -44,7 +44,7 @@ After converting the data to HDF5 you can run the __RASTERer__ tool:
 After loading a file (__Ctrl+O__) you will see the average mass spectrum.
 Al the comments and saved images will be displayed in the __File Info__ docked widget.
 You can plot a saved image by either double clicking on it or from the contextual menu.
-To plot a new image, select one or several regions on the average mass spectrum and click __Plot Image__.
+To plot a new image, select one or several regions on the average mass spectrum (__right click and drag__) and then click __Plot Image__.
 The obtained picture will appear in a separate window.
 
 <p align="center">
